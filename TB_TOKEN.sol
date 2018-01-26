@@ -69,32 +69,20 @@ contract Ownable {
 
 }
 
-
 /**
- * @title ERC20Basic
-    * @dev Simpler version of ERC20 interface
-       * @dev see https://github.com/ethereum/EIPs/issues/179
-          */
-contract ERC20Basic {
+ * @title Standard ERC20 token
+    *
+      * @dev Implementation of the basic standard token.
+         * @dev https://github.com/ethereum/EIPs/issues/20
+            * @dev Based on code by FirstBlood: https://github.com/Firstbloodio/token/blob/master/smart_contract/FirstBloodToken.sol
+               */
+contract StandardToken {
+  using SafeMath for uint256;
+  mapping (address => mapping (address => uint256)) allowed;
+  mapping(address => uint256) balances;
+  mapping(address => bool) preICO_address;
   uint256 public totalSupply;
   uint256 public endDate;
-  function balanceOf(address who) constant returns (uint256);
-  function transfer(address to, uint256 value) returns (bool);
-  event Transfer(address indexed from, address indexed to, uint256 value);
-}
-
-/**
- * @title Basic token
-    * @dev Basic version of StandardToken, with no allowances. 
-       */
-contract BasicToken is ERC20Basic {
-  using SafeMath for uint256;
-
-  mapping(address => uint256) balances;
-  uint256 public endDate;
-//   function getenddate()constant returns(uint256){
-//       return endDate;
-//   }
   /**
   * @dev transfer token for a specified address
       * @param _to The address to transfer to.
@@ -102,13 +90,15 @@ contract BasicToken is ERC20Basic {
               */
   function transfer(address _to, uint256 _value) returns (bool) {
 
-    require( now > endDate ); //Lock coin
+    if( preICO_address[msg.sender] ) require( now > endDate + 120 days ); //Lock coin
+    else require( now > endDate ); //Lock coin
 
     balances[msg.sender] = balances[msg.sender].sub(_value);
     balances[_to] = balances[_to].add(_value);
     Transfer(msg.sender, _to, _value);
     return true;
   }
+  event Transfer(address indexed from, address indexed to, uint256 value);
 
   /**
   * @dev Gets the balance of the specified address.
@@ -118,33 +108,6 @@ contract BasicToken is ERC20Basic {
   function balanceOf(address _owner) constant returns (uint256 balance) {
     return balances[_owner];
   }
-
-}
-
-
-/**
- * @title ERC20 interface
-    * @dev see https://github.com/ethereum/EIPs/issues/20
-       */
-contract ERC20 is ERC20Basic {
-  function allowance(address owner, address spender) constant returns (uint256);
-  function transferFrom(address from, address to, uint256 value) returns (bool);
-  function approve(address spender, uint256 value) returns (bool);
-  event Approval(address indexed owner, address indexed spender, uint256 value);
-}
-
-/**
- * @title Standard ERC20 token
-    *
-      * @dev Implementation of the basic standard token.
-         * @dev https://github.com/ethereum/EIPs/issues/20
-            * @dev Based on code by FirstBlood: https://github.com/Firstbloodio/token/blob/master/smart_contract/FirstBloodToken.sol
-               */
-contract StandardToken is ERC20, BasicToken {
-
-  mapping (address => mapping (address => uint256)) allowed;
-//   uint256 public endDateB;
-
 
   /**
    * @dev Transfer tokens from one address to another
@@ -158,7 +121,8 @@ contract StandardToken is ERC20, BasicToken {
     // Check is not needed because sub(_allowance, _value) will already throw if this condition is not met
     // require (_value <= _allowance);
 
-    require( now > endDate ); //Lock coin
+    if( preICO_address[_from] ) require( now > endDate + 120 days ); //Lock coin
+    else require( now > endDate ); //Lock coin
 
     balances[_to] = balances[_to].add(_value);
     balances[_from] = balances[_from].sub(_value);
@@ -180,12 +144,14 @@ contract StandardToken is ERC20, BasicToken {
     //  https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
     require((_value == 0) || (allowed[msg.sender][_spender] == 0));
 
-    require( now > endDate ); //Lock coin
+    if( preICO_address[msg.sender] ) require( now > endDate + 120 days ); //Lock coin
+    else require( now > endDate ); //Lock coin
 
     allowed[msg.sender][_spender] = _value;
     Approval(msg.sender, _spender, _value);
     return true;
   }
+  event Approval(address indexed owner, address indexed spender, uint256 value);
 
   /**
    * @dev Function to check the amount of tokens that an owner allowed to a spender.
@@ -284,8 +250,12 @@ contract TBToken is StandardToken, Ownable {
     }
 
     // For pushing pre-ICO records
-    function push(address buyer, uint256 amount) onlyOwner {
+    function push(address buyer, uint256 amount) onlyOwner { //b753a98c
         require(balances[wallet] >= amount);
+        require(now < startDate);
+        require(buyer != wallet);
+
+        preICO_address[ msg.sender ] = true;
 
         // Transfer
         balances[wallet] = balances[wallet].sub(amount);
@@ -295,7 +265,7 @@ contract TBToken is StandardToken, Ownable {
 
     function buyTokens(address sender, uint256 value) internal {
         require(saleActive());
-        require(value >= 0.1 ether);
+        require(value >= 0.2 ether);
 
         uint256 weiAmount = value;
         uint256 updatedWeiRaised = weiRaised.add(weiAmount);
