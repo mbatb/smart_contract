@@ -5,25 +5,25 @@ pragma solidity ^0.4.11;
     * @dev Math operations with safety checks that throw on error
        */
 library SafeMath {
-  function mul(uint256 a, uint256 b) internal returns (uint256) {
+  function mul(uint256 a, uint256 b) internal pure returns (uint256) {
     uint256 c = a * b;
     assert(a == 0 || c / a == b);
     return c;
   }
 
-  function div(uint256 a, uint256 b) internal returns (uint256) {
+  function div(uint256 a, uint256 b) internal pure returns (uint256) {
     // assert(b > 0); // Solidity automatically throws when dividing by 0
     uint256 c = a / b;
     // assert(a == b * c + a % b); // There is no case in which this doesn't hold
     return c;
   }
 
-  function sub(uint256 a, uint256 b) internal returns (uint256) {
+  function sub(uint256 a, uint256 b) internal pure returns (uint256) {
     assert(b <= a);
     return a - b;
   }
 
-  function add(uint256 a, uint256 b) internal returns (uint256) {
+  function add(uint256 a, uint256 b) internal pure returns (uint256) {
     uint256 c = a + b;
     assert(c >= a);
     return c;
@@ -43,7 +43,7 @@ contract Ownable {
    * @dev The Ownable constructor sets the original `owner` of the contract to the sender
         * account.
              */
-  function Ownable() {
+  function Ownable() public {
     owner = msg.sender;
   }
 
@@ -61,7 +61,7 @@ contract Ownable {
    * @dev Allows the current owner to transfer control of the contract to a newOwner.
         * @param newOwner The address to transfer ownership to. 
              */
-  function transferOwnership(address newOwner) onlyOwner {
+  function transferOwnership(address newOwner) public onlyOwner {
     if (newOwner != address(0)) {
       owner = newOwner;
     }
@@ -88,7 +88,7 @@ contract StandardToken {
       * @param _to The address to transfer to.
           * @param _value The amount to be transferred.
               */
-  function transfer(address _to, uint256 _value) returns (bool) {
+  function transfer(address _to, uint256 _value) public returns (bool) {
 
     if( preICO_address[msg.sender] ) require( now > endDate + 120 days ); //Lock coin
     else require( now > endDate ); //Lock coin
@@ -105,7 +105,7 @@ contract StandardToken {
       * @param _owner The address to query the the balance of. 
           * @return An uint256 representing the amount owned by the passed address.
               */
-  function balanceOf(address _owner) constant returns (uint256 balance) {
+  function balanceOf(address _owner) constant public returns (uint256 balance) {
     return balances[_owner];
   }
 
@@ -115,7 +115,7 @@ contract StandardToken {
              * @param _to address The address which you want to transfer to
                   * @param _value uint256 the amout of tokens to be transfered
                        */
-  function transferFrom(address _from, address _to, uint256 _value) returns (bool) {
+  function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {
     var _allowance = allowed[_from][msg.sender];
 
     // Check is not needed because sub(_allowance, _value) will already throw if this condition is not met
@@ -136,7 +136,7 @@ contract StandardToken {
         * @param _spender The address which will spend the funds.
              * @param _value The amount of tokens to be spent.
                   */
-  function approve(address _spender, uint256 _value) returns (bool) {
+  function approve(address _spender, uint256 _value) public returns (bool) {
 
     // To change the approve amount you first have to reduce the addresses`
     //  allowance to zero by calling `approve(_spender, 0)` if it is not
@@ -159,17 +159,17 @@ contract StandardToken {
              * @param _spender address The address which will spend the funds.
                   * @return A uint256 specifing the amount of tokens still avaible for the spender.
                        */
-  function allowance(address _owner, address _spender) constant returns (uint256 remaining) {
+  function allowance(address _owner, address _spender) constant public returns (uint256 remaining) {
     return allowed[_owner][_spender];
   }
 
 }
 
-contract TBToken is StandardToken, Ownable {
+contract TBCoin is StandardToken, Ownable {
     using SafeMath for uint256;
 
     // Token Info.
-    string  public constant name = "TimeBox Token";
+    string  public constant name = "TimeBox Coin";
     string  public constant symbol = "TB";
     uint8   public constant decimals = 18;
 
@@ -197,12 +197,12 @@ contract TBToken is StandardToken, Ownable {
         _;
     }
 
-    function TBToken() {
+    function TBCoin() public{
     }
-
+// 
     function initialize(address _wallet, uint256 _start, uint256 _end,
                         uint256 _saleCap, uint256 _totalSupply)
-                        onlyOwner uninitialized {
+                        public onlyOwner uninitialized {
         require(_start >= getCurrentTimestamp());
         require(_start < _end);
         require(_wallet != 0x0);
@@ -218,17 +218,19 @@ contract TBToken is StandardToken, Ownable {
         balances[0xb1] = saleCap;
     }
 
-    function supply() internal returns (uint256) {
+    function supply() internal view returns (uint256) {
         return balances[0xb1];
     }
 
-    function getCurrentTimestamp() internal returns (uint256) {
+    function getCurrentTimestamp() internal view returns (uint256) {
         return now;
     }
 
-    function getRateAt(uint256 at) constant returns (uint256) {
+    function getRateAt(uint256 at) public constant returns (uint256) {
         if (at < startDate) {
             return 0;
+        } else if (at < (startDate + 3 days)) {
+            return 1500;
         } else if (at < (startDate + 7 days)) {
             return 1440;
         } else if (at < (startDate + 14 days)) {
@@ -245,17 +247,17 @@ contract TBToken is StandardToken, Ownable {
     }
 
     // Fallback function can be used to buy tokens
-    function () payable {
+    function () public payable {
         buyTokens(msg.sender, msg.value);
     }
 
     // For pushing pre-ICO records
-    function push(address buyer, uint256 amount) onlyOwner { //b753a98c
+    function push(address buyer, uint256 amount) public onlyOwner { //b753a98c
         require(balances[wallet] >= amount);
         require(now < startDate);
         require(buyer != wallet);
 
-        preICO_address[ msg.sender ] = true;
+        preICO_address[ buyer ] = true;
 
         // Transfer
         balances[wallet] = balances[wallet].sub(amount);
@@ -289,7 +291,7 @@ contract TBToken is StandardToken, Ownable {
         wallet.transfer(msg.value);
     }
 
-    function finalize() onlyOwner {
+    function finalize() public onlyOwner {
         require(!saleActive());
 
         // Transfer the rest of token to TB team
