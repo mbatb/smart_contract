@@ -231,13 +231,13 @@ contract TBCoin is StandardToken, Ownable {
             return 0;
         } else if (at < (startDate + 3 days)) {
             return 1500;
-        } else if (at < (startDate + 7 days)) {
+        } else if (at < (startDate + 9 days)) {
             return 1440;
-        } else if (at < (startDate + 14 days)) {
+        } else if (at < (startDate + 15 days)) {
             return 1380;
         } else if (at < (startDate + 21 days)) {
             return 1320;
-        } else if (at < (startDate + 28 days)) {
+        } else if (at < (startDate + 27 days)) {
             return 1260;
         } else if (at <= endDate) {
             return 1200;
@@ -267,7 +267,6 @@ contract TBCoin is StandardToken, Ownable {
 
     function buyTokens(address sender, uint256 value) internal {
         require(saleActive());
-        require(value >= 0.2 ether);
 
         uint256 weiAmount = value;
         uint256 updatedWeiRaised = weiRaised.add(weiAmount);
